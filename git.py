@@ -3,8 +3,7 @@ import random
 import sys
 from datetime import datetime, date, timedelta
 
-print("Git Commit Generator")
-print("This tool creates backdated commits within a specified date range.")
+
 print("=" * 60)
 
 def parse_date(date_str):
@@ -64,8 +63,24 @@ print("=" * 60)
 file_path = 'test.txt'
 with open(file_path, 'a') as file:
     file.write('Initial commit\n')
-os.system('git add test.txt')
-os.system('git commit -m "Initial commit"')
+
+# Check if we're in a git repository
+if os.system('git status') != 0:
+    print("Error: Not in a git repository. Please run 'git init' first.")
+    exit(1)
+
+# Add and commit initial file
+add_result = os.system('git add test.txt')
+if add_result != 0:
+    print("Error adding initial file")
+    exit(1)
+
+commit_result = os.system('git commit -m "Initial commit"')
+if commit_result != 0:
+    print("Error creating initial commit")
+    exit(1)
+
+print("Initial commit created successfully")
 
 for i in range(NUM_COMMITS):
     # Generate random date within the specified range
@@ -80,6 +95,8 @@ for i in range(NUM_COMMITS):
     # Construct the commit date string
     commit_date_str = f"{commit_date.year}-{commit_date.month:02d}-{commit_date.day:02d} {random_hour:02d}:{random_minute:02d}:00"
 
+    print(f"Creating commit {i+1}/{NUM_COMMITS} for {commit_date}...")
+
     # Write to file to create a change
     with open(file_path, 'a') as file:
         file.write(f'Commit for {commit_date_str}\n')
@@ -93,6 +110,8 @@ for i in range(NUM_COMMITS):
     commit_result = os.system(f'git commit --date="{commit_date_str}" -m "Commit #{i+1}"')
     if commit_result != 0:
         print(f"Error during commit {i+1}")
+    else:
+        print(f"✓ Created commit {i+1} for {commit_date}")
 
 # Push commits to the remote repository
 push_result = os.system('git push -u origin main')
