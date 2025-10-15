@@ -1,19 +1,64 @@
 import os
 import random
+import sys
+from datetime import datetime, date, timedelta
 
-# Get number of commits from the user
-try:
-    NUM_COMMITS = int(input("Enter the number of commits to create: "))
-except ValueError:
-    print("Please enter a valid integer for the number of commits.")
+print("Git Commit Generator")
+print("This tool creates backdated commits within a specified date range.")
+print("=" * 60)
+
+def parse_date(date_str):
+    """Parse date from MM/DD/YYYY format"""
+    try:
+        month, day, year = map(int, date_str.split('/'))
+        return date(year, month, day)
+    except ValueError:
+        print(f"Error: Invalid date format '{date_str}'. Please use MM/DD/YYYY format (e.g., 08/24/2025)")
+        exit(1)
+
+# Check if command-line arguments are provided
+if len(sys.argv) == 4:
+    # Command-line mode: python git.py <num_commits> <start_date> <end_date>
+    try:
+        NUM_COMMITS = int(sys.argv[1])
+    except ValueError:
+        print(f"Error: '{sys.argv[1]}' is not a valid number of commits.")
+        exit(1)
+    
+    start_date = parse_date(sys.argv[2])
+    end_date = parse_date(sys.argv[3])
+else:
+    # Interactive mode
+    try:
+        NUM_COMMITS = int(input("\nEnter the number of commits to create: "))
+    except ValueError:
+        print("Please enter a valid integer for the number of commits.")
+        exit(1)
+    
+    def get_date_input(prompt):
+        """Get and validate date input from user"""
+        while True:
+            try:
+                date_str = input(prompt)
+                return parse_date(date_str)
+            except SystemExit:
+                continue
+    
+    print("\nEnter the date range for commits:")
+    start_date = get_date_input("Start date (MM/DD/YYYY): ")
+    end_date = get_date_input("End date (MM/DD/YYYY): ")
+
+# Validate date range
+current_date = date.today()
+if start_date > end_date:
+    print("Error: Start date must be before or equal to end date.")
+    exit(1)
+if end_date > current_date:
+    print(f"Error: End date cannot be in the future. Today is {current_date}.")
     exit(1)
 
-# Get the year from the user
-try:
-    year = int(input("Enter the year for the commits (e.g., 2024): "))
-except ValueError:
-    print("Please enter a valid year.")
-    exit(1)
+print(f"\nCreating {NUM_COMMITS} commits between {start_date} and {end_date}...")
+print("=" * 60)
 
 # Create a file for dummy commits
 file_path = 'test.txt'
@@ -23,29 +68,36 @@ os.system('git add test.txt')
 os.system('git commit -m "Initial commit"')
 
 for i in range(NUM_COMMITS):
-    # Generate random month and day offset
-    month = random.randint(1, 12)
-    day_offset = i % 28 + 1  # Ensures the day is between 1 and 28 to avoid invalid dates
-
+    # Generate random date within the specified range
+    days_between = (end_date - start_date).days
+    random_days = random.randint(0, days_between)
+    commit_date = start_date + timedelta(days=random_days)
+    
+    # Add random time (hour and minute)
+    random_hour = random.randint(9, 20)
+    random_minute = random.randint(0, 59)
+    
     # Construct the commit date string
-    commit_date_str = f"{year}-{month:02d}-{day_offset:02d} 12:00:00"
+    commit_date_str = f"{commit_date.year}-{commit_date.month:02d}-{commit_date.day:02d} {random_hour:02d}:{random_minute:02d}:00"
 
     # Write to file to create a change
     with open(file_path, 'a') as file:
         file.write(f'Commit for {commit_date_str}\n')
     
     # Add and commit changes with the specified date
-    try:
-        os.system('git add test.txt')
-        os.system(f'git commit --date="{commit_date_str}" -m "Commit #{i+1}"')
-    except Exception as e:
-        print(f"Error during commit {i+1}: {e}")
+    add_result = os.system('git add test.txt')
+    if add_result != 0:
+        print(f"Error adding file for commit {i+1}")
+        continue
+    
+    commit_result = os.system(f'git commit --date="{commit_date_str}" -m "Commit #{i+1}"')
+    if commit_result != 0:
+        print(f"Error during commit {i+1}")
 
 # Push commits to the remote repository
-try:
-    os.system('git push -u origin main')
-except Exception as e:
-    print(f"Error pushing to repository: {e}")
+push_result = os.system('git push -u origin main')
+if push_result != 0:
+    print("Error pushing to repository")
 
 
 #git commit --amend --no-edit --date="Fri Nov 6 20:00:00 2015 -0600" 
