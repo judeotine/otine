@@ -59,6 +59,12 @@ if end_date > current_date:
 
 print(f"\nCreating {NUM_COMMITS} commits between {start_date} and {end_date}...")
 print("=" * 60)
+print("\n⚠️  NOTE: GitHub's contribution graph may not show all backdated commits.")
+print("   Commits must be:")
+print("   - Pushed to the default branch (main/master)")
+print("   - Made with an email matching your GitHub account")
+print("   - Not too far in the past relative to when they were pushed")
+print("=" * 60)
 
 # Create a file for dummy commits
 file_path = 'test.txt'
@@ -113,9 +119,17 @@ for i in range(NUM_COMMITS):
     
     # Add and commit changes with the specified date
     # Use environment variables for more reliable date setting on Windows
+    # Explicitly set author and committer info to match GitHub account
     env = os.environ.copy()
     env['GIT_AUTHOR_DATE'] = commit_date_str
     env['GIT_COMMITTER_DATE'] = commit_date_str
+    # Get current git config to ensure email matches GitHub account
+    git_email = subprocess.run(['git', 'config', 'user.email'], capture_output=True, text=True).stdout.strip()
+    git_name = subprocess.run(['git', 'config', 'user.name'], capture_output=True, text=True).stdout.strip()
+    env['GIT_AUTHOR_NAME'] = git_name
+    env['GIT_AUTHOR_EMAIL'] = git_email
+    env['GIT_COMMITTER_NAME'] = git_name
+    env['GIT_COMMITTER_EMAIL'] = git_email
     
     add_result = subprocess.run(['git', 'add', file_path], capture_output=True, text=True)
     if add_result.returncode != 0:
